@@ -117,14 +117,14 @@ Before feeding any data into a **Logistic Regression** model, you must check you
 
 
 
-# print(f"""
-#       ------tutor----
-#       {ask_persona(tutor,"explain equilibrium for me  ")}  """)#here for this examples i will use simple prompts 
+print(f"""
+       ------tutor----
+       {ask_persona(tutor,"explain equilibrium for me  ")}  """)#here for this examples i will use simple prompts 
 
-# print(f"""
-#       ------translator----
-#       {ask_persona(translator,"translate this to italian: AI is so important  ")}  """)
+print(f"""
+       ------translator----
+       {ask_persona(translator,"translate this to italian: AI is so important  ")}  """)
 
-# print(f"""
-#       ------analyst----
-#       {ask_persona(analyst," what is an logistic regression?  ")}  """)
+print(f"""
+       ------analyst----
+       {ask_persona(analyst," what is an logistic regression?  ")}  """)
