@@ -42,8 +42,10 @@ model.fit(x_train,y_train)
 y_pred = model.predict(x_test)
 print(f"accuracy: {accuracy_score(y_test, y_pred):.3f}")
 
-# save model
+# save models
 import joblib
 joblib.dump(model, "day09/titanic_model.pkl") #this is my model
 #saved in binary file so after that stream lit can load it and use it 
 print("model saved")
+
+
