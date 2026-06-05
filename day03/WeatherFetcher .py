@@ -1,7 +1,7 @@
 #just was thinking about the logic of doing a weatherfetcher 
 #what i need to do is when the user enter the name of the city 
 #my code can convert it to the coordinates for the exact same location 
-#that the user choose then i take this coordinates and push them throup 
+#that the user choose then i take this coordinates and push them with 
 #an http get and take the url from open meteo to provide meteo information 
 #for the user on the location that he chose 
 
