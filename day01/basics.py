@@ -8,7 +8,7 @@ Teams.append("Bulls")
 #dictionary
 Me ={"name":"elias","age":23}
 print(Me["name"])
-#there is also other types of dictionaries:
+#there is also alot  other types of dictionaries:
 
 #1 ordered dict
 import collections
