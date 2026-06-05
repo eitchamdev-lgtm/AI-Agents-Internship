@@ -17,7 +17,7 @@ class weatherFetcher:
         
     def get_weather(self):
         try:
-           geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1&language=en&format=json"
+           geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={self.city}&count=1&language=en&format=json"
            geo_response=requests.get(geo_url)
            geo_data=geo_response.json()
 
@@ -32,7 +32,7 @@ class weatherFetcher:
             latitude=first_result["latitude"]
             longitude=first_result["longitude"]
             print(f"if found the coordinations for  {self.city}:latitude={latitude},longitude={longitude}")
-            meteo_situation=input(f"now that I found the city cordination print 'Yes' if you want the meteo situation in {city} ")
+            meteo_situation=input(f"now that I found the city cordination print 'Yes' if you want the meteo situation in {sel.city} ")
 
             if meteo_situation.lower()=="yes":
                 weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,weather_code&timezone=auto"
