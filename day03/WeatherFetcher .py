@@ -1,7 +1,7 @@
 #just was thinking about the logic of doing a weatherfetcher 
 #what i need to do is when the user enter the name of the city 
 #my code can convert it to the coordinates for the exact same location 
-#that the user choose then i take this coordinates and push them throup 
+#that the user choose then i take this coordinates and push them with 
 #an http get and take the url from open meteo to provide meteo information 
 #for the user on the location that he chose 
 
@@ -32,7 +32,11 @@ class weatherFetcher:
             latitude=first_result["latitude"]
             longitude=first_result["longitude"]
             print(f"if found the coordinations for  {self.city}:latitude={latitude},longitude={longitude}")
+<<<<<<< HEAD
             meteo_situation=input(f"now that I found the city cordination print 'Yes' if you want the meteo situation in {self.city} ")
+=======
+            meteo_situation=input(f"now that I found the city cordination print 'Yes' if you want the meteo situation in {sel.city} ")
+>>>>>>> 319aca636c29a104b1df2ceaee040e21b6ecd4df
 
             if meteo_situation.lower()=="yes":
                 weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,weather_code&timezone=auto"

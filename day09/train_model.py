@@ -11,7 +11,7 @@ print(df.isnull().sum())   #to check how many missing values we have
 #now we can see that the variables age and cabin and embarked has missing 
 #values so we gonna solve that before we start working 
 #and i will drop also passenger name since i wanna study survival here (0,1)
-#and i will remove also passenger id and ticket because they dont have nothing to do with surviival
+#and i will remove also passenger id and ticket because they dont have nothing to do with survival
 #in my opinion they are statically non significant for the dipendent variable survived that i wanna study 
 #droped also cabin a lot of missing values 
 
