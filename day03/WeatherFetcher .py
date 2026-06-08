@@ -7,7 +7,7 @@
 
 import requests
 #i could've use a simple function to do the fetcher but i prefered to use a class 
-#so in the future if we want to ad for exemple wanna do a fetche for weather 
+#so in the future if we want to ad for example wanna do a fetche for weather 
 # and population numer for that city  get_population i can add any other function 
 #i can put it inside of class
 class weatherFetcher:
