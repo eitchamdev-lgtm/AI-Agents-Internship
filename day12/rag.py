@@ -58,7 +58,7 @@ load_dotenv(".env")
 client=Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 #lets send the rilevent chunks to the LLM because the LLM dosen't see the whole document but only see 
-#the rilevant chuank 
+#the rilevant chunk 
 context="\n".join(results["documents"][0])
 response=client.chat.completions.create(model="llama-3.3-70b-versatile",
     messages=[
