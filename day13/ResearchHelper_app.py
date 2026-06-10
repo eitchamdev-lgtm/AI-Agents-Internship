@@ -62,6 +62,6 @@ if st.session_state.last_topic !="":     #if the first message exists
 #1 run the tool
 #2 save result to messages
 #3 rerun streamlit to redraw the chat
-#Compare is the only different one because it needs a second topic from the user first.
+#Compare is the only different one because it needs a second topic from the user first..
 
 
