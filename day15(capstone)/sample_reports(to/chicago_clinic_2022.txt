@@ -1,0 +1,12 @@
+Chicago Clinic - Annual Checkup
+Date: March 15, 2022
+Doctor: Dr. Sarah Smith
+Patient: John Doe
+
+Findings:
+- Blood pressure: 118/76 (normal)
+- Glucose: 95 mg/dL (normal)
+- Cholesterol: 180 mg/dL (normal)
+- Weight: 78kg
+Diagnosis: Healthy. Annual checkup recommended.
+Medications: None

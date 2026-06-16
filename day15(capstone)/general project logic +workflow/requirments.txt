@@ -1,0 +1,10 @@
+langchain
+langchain-groq
+langchain-huggingface
+langgraph
+chromadb
+streamlit
+pdfplumber
+matplotlib
+python-dotenv
+groq
