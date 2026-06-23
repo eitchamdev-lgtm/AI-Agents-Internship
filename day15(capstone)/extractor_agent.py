@@ -70,7 +70,7 @@ def extractor_agent(folder_path:str)->list:
         
         # convert JSON string to python dictionary
         try:
-            data =data = json.loads(clean)
+            data = json.loads(clean)
             data["source_file"] = filename
             extracted_data.append(data)
         except:
@@ -85,7 +85,12 @@ if __name__ == "__main__":
     for r in results:
         print(r)
 
-
+# in simple words this agent read every pdf and txt file from the folder
+# saves the raw text in a dict where key=filename and value=raw text
+# then loops through that dict and for each file sends the raw text to the LLM
+# the LLM read it and returns clean structured JSON with only the important medical facts
+# we parse that JSON into a python dict and add it to a list
+# at the end we return a list of clean dicts — one per report — ready for the next agent
 
 
 
