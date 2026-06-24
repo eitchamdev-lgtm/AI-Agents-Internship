@@ -1,0 +1,15 @@
+#here's all py packages that I used in this project
+langchain
+langchain-groq
+langchain-huggingface
+langchain-text-splitters
+langgraph
+chromadb
+pdfplumber
+streamlit
+python-dotenv
+matplotlib
+pytest
+
+#so when someone whats to instal py package they can 
+#type in anaconda prompt(if used) this: pip install -r requirements.txt

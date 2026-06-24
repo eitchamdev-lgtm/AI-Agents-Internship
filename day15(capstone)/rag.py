@@ -104,5 +104,4 @@ if __name__ == "__main__":
 
     store_reports(test_texts)  # store the reports in chromadb first
     print(ask_question("what was my blood pressure at wellmed?"))
-    print(ask_question("did i have any medication prescribed?"))
-
+    print(ask_question("did i have any medication prescribed?"))    

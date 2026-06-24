@@ -22,11 +22,11 @@ outreach_prompt=ChatPromptTemplate.from_messages([
  your job is to help patients to collect all their medical records.
 given either uploaded PDF text OR a described medical history:
  
- -identify all clinics hospitals and doctors vistited 
+ -identify all clinics hospitals and doctors visited 
  -infer any missing providers the patient should have seen (example: high blood pressure then should have seen a cardiologist)
  -find their medical records request email address (use common patterns like records@[clinicname].com or medicalrecords@[hospital].org)
  (or try to get the email visiting clinic, hospital , doctor website)
- -write a professional email email requesting medical records for the patient
+ -write a professional email  requesting medical records for the patient
  -note:Generate ONE email per provider
 
 format your response exactly like this:
@@ -43,7 +43,7 @@ Subject: Request for medical records
 [email body]
 
 --- next email ---
-To: [next provider"""),
+To: [next provider]"""),
 ("human", "{user_input}")]) # {user_input} is the blank that gets filled with whatever the user provide(pdfs or text)
 
 #connect prompt to model 
