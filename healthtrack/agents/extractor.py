@@ -45,63 +45,55 @@ extractor_prompt=ChatPromptTemplate.from_messages([
 #connect the excractor prompt with the llm 
 extractor_chain=extractor_prompt|llm
 
-#lets build a fuction to read pdf that take in input folder path as a str and return a dict 
-#why it does return a dict ? first return a dict where the key is file name and the value is the raw text 
-#so like that we can keep track and know each task from which pdf came 
-def readPDFS(folder_path:str)->dict:
-    raw_texts={}      # empty dict to save raw text excracted from pdfs 
-    for filename in os.listdir(folder_path):#os.listdir return a list of every file name in the folder 
-        if filename.endswith(".pdf") or filename.endswith(".txt"):#look for pdf files or text files only 
-            file_path=os.path.join(folder_path,filename) #create the file path to be able to open it 
-            
-            if filename.endswith(".pdf"):
-                with pdfplumber.open(file_path) as pdf: #loop through every page of the pdf extract the text from each page join all pages into one big string separated by newlines
-                    text=".\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
-            else:    #it's not a pdf it's a txt 
-                with open(file_path,"r") as f:
-                    text=f.read()
-            raw_texts[filename] = text #save the excrated texts into the dict raw_texts
-            print(f"read{filename}")
-    return raw_texts
+#exctractor agent function that take the dictionary of raw texts (key=file name,value=file text content)
+#  as an input and return a list of dict where we gonna get one dict of report
+#not lets build the exctractor agent function that take raw text from memory (already read by orchestrator)
+#it loops through each file (value of dict , because it tales a dict as input), send text to llm
+#the ll return structured json we parse the j json and add it to a list ,and we return 
+#the list of structured data 
+def extractor_agent(raw_texts:dict)->list:
+    extracted_data=[]
+    for filename,text in raw_texts.items():#loop each file(key)and it text content of  the dict raw_texts read by the orchestrator
+        print(f"agent is extracting data from {filename}")
 
-#not lets build the exctractor agent function that take the folder path as an input and return a list of dict 
-#where we gonna get one dict of report 
-def extractor_agent(folder_path:str)->list:
-    raw_texts=readPDFS(folder_path) #call the function built before and return all a dict with the key as file name and the value as the texts 
-    extracted_data=[]  #empty list where we gonna collect all the structured data of the reports 
+        response=extractor_chain.invoke({"report_text":text}) #take the content of each file(take the value of each key)
+                                                              #invoke the chainn that have the prompt 
+                                                              #that tel the llm what to to and how we want the output to be 
+                                                              #send the prompt and the file text content to the llm to get the json output 
 
-    for filename, text in raw_texts.items():    #.items() loops through the dictionary and return both key and value 
-        print(f"agent is exctracting data from {filename}....")
-        response = extractor_chain.invoke({"report_text": text}) #send the raw data of each file to the LLM the LLM read it and return a JSON with the structured data
-        clean = response.content.strip() #remove any exta spaces the LLM added around the JSON
-        clean = clean.replace("```json", "").replace("```", "").strip() #remove backticks becaus somtimes LLM return a markdown formatiing 
-        
-        # convert JSON string to python dictionary
+        clean=response.content.strip()#clean the response and remove spaces and md formatting
+        clean = clean.replace("```json", "").replace("```", "").strip()
+
+        #convert the json string to a python dict 
         try:
-            data =json.loads(clean)
-            data["source_file"] = filename
+            data=json.loads(clean)
+            data["source_file"]=filename #add the file name so we know which report it came from 
             extracted_data.append(data)
-        except:
-            # if JSON parsing fails save raw text so nothing is lost
-            extracted_data.append({"source_file": filename, "raw_text": text})
-
+        except:#in case json pasing fails save the raw text so we dont loose it 
+            extracted_data.append({"source_file":filename,"raw_text":text})
     return extracted_data
 
-#test (it only run for this file but this block will not run if imported)
-if __name__ == "__main__": #removed (c:user\lenovo\.....)
-    # import the sample folder path from config so it works on any computer
-    from healthtrack.config import SAMPLE_DIR
-    # run the extractor on the sample reports folder
-    results = extractor_agent(str(SAMPLE_DIR))
-    # print each extracted report
+
+# this block runs only when we execute this file directly
+# it is used for testing the agent alone
+if __name__ == "__main__":
+    from healthtrack.config import SAMPLE_DIR # import the sample folder path from config
+    from healthtrack.orchestrator import read_file # import the read_file function from orchestrator to read files once
+    raw_texts = read_file(str(SAMPLE_DIR)) # read the sample files once
+    results = extractor_agent(raw_texts)
+
     for r in results:
         print(r)
 
 
-# in simple words this agent read every pdf and txt file from the folder
-# saves the raw text in a dict where key=filename and value=raw text
-# then loops through that dict and for each file sends the raw text to the LLM
-# the LLM read it and returns clean structured JSON with only the important medical facts
-# we parse that JSON into a python dict and add it to a list
-# at the end we return a list of clean dicts — one per report — ready for the next agent
+# what we updated in extractor py compared to the old script old code used to read files from disk inside the agent
+# old code had a function called readpdfs that read files every time this meant the same files were read multiple times
+
+# new code does not read files from disk at all new code takes raw text from memory passed by orchestrator
+# the orchestrator already read the files once at the start
+
+#this is better because:
+# no duplicate reads means faster execution,no hardcoded paths inside the agent
+# the counter in orchestrator proves files are read exactly once
+# the agent is now pure data transformation not file io
 

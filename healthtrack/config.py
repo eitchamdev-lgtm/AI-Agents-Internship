@@ -19,7 +19,7 @@ load_dotenv()
 BASE_DIR=Path(__file__).resolve().parent.parent
 #so no matter where the project is installed BASE_DIR always know where the root is 
 
-DATA_DIR   = BASE_DIR / "healthtrack" / "data"
+DATA_DIR   = BASE_DIR / "data"
 UPLOAD_DIR = DATA_DIR / "uploads"
 CHROMA_DIR = DATA_DIR / "chroma"
 SAMPLE_DIR = DATA_DIR / "sample_reports"
