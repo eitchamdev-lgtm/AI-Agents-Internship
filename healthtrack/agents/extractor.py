@@ -32,10 +32,10 @@ extractor_prompt=ChatPromptTemplate.from_messages([
         "date": "YYYY-MM-DD",
         "doctor": "doctor name",
         "findings":
-      {{"blood_pressure": "value or null",
-        "glucose": "value or null",
-        "cholesterol": "value or null",
-        "weight": "value or null"}},
+      {{"blood_pressure": "value or NA",
+        "glucose": "value or NA",
+        "cholesterol": "value or NA",
+        "weight": "value or NA"}},
         "diagnosis": "main diagnosis",
         "medications": "medications or none",
         "notes": "any important notes"}}
@@ -69,7 +69,7 @@ def extractor_agent(raw_texts:dict)->list:
             data=json.loads(clean)
             data["source_file"]=filename #add the file name so we know which report it came from 
             extracted_data.append(data)
-        except:#in case json pasing fails save the raw text so we dont loose it 
+        except  json.JSONDecodeError:#in case json pasing fails save the raw text so we dont loose it 
             extracted_data.append({"source_file":filename,"raw_text":text})
     return extracted_data
 

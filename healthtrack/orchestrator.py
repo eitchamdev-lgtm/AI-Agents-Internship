@@ -21,7 +21,7 @@ from healthtrack.config import UPLOAD_DIR
 
 import os
 
-#so here what we gonna do is build a function that read file txt and pdf from a folder 
+#so here what we gonna do is build a function that read file txt and pdf(using pdf plumber) from a folder 
 #and return a text in a dict form where the key = file name and value = file or pdf content
 #create a counter to make sure odf are read only once
 
@@ -35,12 +35,20 @@ def read_file(folder_path:str)->dict:
     for filename in os.listdir(folder_path):
         if filename.endswith(".pdf") or filename.endswith(".txt"):# only read pdf or txt files
             file_path = os.path.join(folder_path, filename) # build the full file path
-            
-            with open(file_path, "r", encoding="utf-8") as f: # open and read the file
-                raw_texts[filename] = f.read()
-            
-            read_count += 1
-            print(f" files  read {read_count}: {filename}") # increase counter and print how many files are read 
+
+            if filename.endswith(".pdf"):#here we gonna use odf plumber because its able to read binary files and extract txts
+                import pdfplumber #before i used only open() that work only with txt files but dosent wotk with binary files as pdf so for pdf i shouldve used pdf plumber
+                with pdfplumber.open(file_path) as pdf : ## extract text from every page and join with newline and skip empty pages
+                    text="\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+
+            else:
+                with open(file_path,"r",encoding="utf-8") as f: #txt file can be opened with itf-8 encoding
+                    text=f.read()
+
+            raw_texts[filename]=text #store the text in the dict with file name as a key 
+
+            read_count+=1  #increase the conter on every file read
+            print(f"read {read_count}:{filename}")
     
     # print total files read to prove they were read once
     print(f"total files read: {read_count}")

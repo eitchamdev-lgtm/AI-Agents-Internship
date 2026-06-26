@@ -1,15 +1,20 @@
-#here's all py packages that I used in this project
-langchain
-langchain-groq
-langchain-huggingface
-langchain-text-splitters
-langgraph
-chromadb
-pdfplumber
-streamlit
-python-dotenv
-matplotlib
-pytest
+# pin exact versions in requirements.txt so everyone installing the project gets the same package versions
+# without pinned versions the code can break when packages update unexpectedly
+#pip freeze | findstr /i "langchain chromadb streamlit langgraph pdfplumber matplotlib huggingface python-dotenv pytest"
 
-#so when someone whats to instal py package they can 
-#type in anaconda prompt(if used) this: pip install -r requirements.txt
+chromadb==1.5.9
+huggingface_hub==1.18.0
+langchain==1.3.4
+langchain-core==1.4.1
+langchain-groq==1.1.2
+langchain-huggingface==1.2.2
+langchain-protocol==0.0.16
+langchain-text-splitters==1.1.2
+langgraph==1.2.4
+langgraph-checkpoint==4.1.1
+langgraph-prebuilt==1.1.0
+langgraph-sdk==0.4.2
+matplotlib==3.10.9
+pdfplumber==0.11.9
+python-dotenv==1.2.2
+streamlit==1.58.0

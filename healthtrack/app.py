@@ -1,7 +1,4 @@
 import os
-import sys 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# this is the streamlit interface for healthtrack it lets users upload files and see the analysis
 import streamlit as st
 import matplotlib
 matplotlib.use("Agg")  # fix so matplotlib doesn't open a separate window
@@ -18,7 +15,7 @@ all files are read once and processed by five specialized agents""")
 
 
 # create the upload folder if it doesn't exist
-# this uses the path from config which is already built with pathlib
+# this uses the path from config which is already built with pathlib 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # file uploader
@@ -96,4 +93,13 @@ if st.session_state.get("done"):
 #the results show up in the streamlit app as a report graph and timline and you can download the report as a text file
 #the whole pipeline uses the same upload folder for saving and reading so everything connects propperly
 
+# note: i was thinking to find a solution that allow us  to avoid doing a copy of the user uploaded pdf(medical report) in the folder uploads
+# because my  app saves a copy of the uploaded file to the uploads folder on the user machine i noticed that this is 
+# different from LLM like chatgpt  which save files to their cloud servers(and they read from memory) so here in my case i think i have to
+#  save locally because  agents read from disk and the pipeline runs entirely on the user machine
+#and its common that reading from memory is faster than reading from disck(memory paramyde), i think in our case reading from memory is 
+#much difficult because we had to pass files content to each agent mannyaly (i thinks) so rading from disck is simpler since we create 
+#folder path and this folder path is where we want our files copy to be so any agent want content can go direactly to that folder(uploads)(local folder)
 
+
+#sys.path.insert forces Py to find modules	Py finds modules naturally 

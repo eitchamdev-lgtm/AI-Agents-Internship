@@ -38,6 +38,8 @@ for d in (UPLOAD_DIR,CHROMA_DIR,SAMPLE_DIR):
 
 #store setting (llm and models ) in one place 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise ValueError("No API key found , create a new.env file , for instructions check .env.example")
 LLM_MODEL    = "llama-3.3-70b-versatile"
 EMBED_MODEL  = "all-MiniLM-L6-v2"
 #the reason defining all these model onve here i this file is because if i want to change them i can 
