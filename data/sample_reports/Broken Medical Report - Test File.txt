@@ -1,0 +1,13 @@
+Broken Medical Report - Test File
+Date: 2023-05-10
+Doctor: Dr. Test
+Clinic: Test Clinic
+
+Blood Pressure: bad_value
+Glucose: not_a_number
+Cholesterol: ????
+Weight: unknown
+
+Diagnosis: test file for error handling
+Medications: none
+Notes: this file has intentionally bad values to test the BP parser

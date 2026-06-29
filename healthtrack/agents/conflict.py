@@ -8,6 +8,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from healthtrack.config import GROQ_API_KEY, LLM_MODEL
 import json
+from healthtrack.utils import call_llm
 
 llm = ChatGroq(api_key=GROQ_API_KEY, model=LLM_MODEL)
 
@@ -55,10 +56,11 @@ def conflict_agent(timeline:str,extracted_data:list)->str:
     extracted_text = json.dumps(extracted_data, indent=2)
     
     # pass both the timeline and the raw numbers to the llm
-    response = conflict_chain.invoke({
-        "timeline": timeline,
-        "extracted_data": extracted_text
-    })
+    response = call_llm(conflict_chain, 
+                        {"timeline": timeline,
+                        "extracted_data": extracted_text})
+    #if this llm call fail with no retry the patient never sees the conflicts found which fails the whole purpos of the system
+    #with call_llm this critical call gets 3 attempt before giving up
     return response.content
 
 

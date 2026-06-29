@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from healthtrack.config import GROQ_API_KEY, LLM_MODEL
 import json
 llm = ChatGroq(api_key=GROQ_API_KEY, model=LLM_MODEL)
-
+from healthtrack.utils import call_llm
 #now for the rest of the code gonna be equal we just changed the imports 
 #the way of specifiying the file path loading the api and specifiying the model
 #cannot run it directly from python as a script we should run it as a modul(pthon -m healthtrack.agents.agent name) because we have the 
@@ -50,7 +50,10 @@ def timeline_agent(extracted_data: list) -> str: #extracted_data is the list fro
 
     #connect prompt to llm 
     chain = prompt | llm
-    response = chain.invoke({"sorted_data": sorted_text})#runs it
+    response = call_llm(chain, {"sorted_data": sorted_text})#runs it
+    #The timeline agent make one  llm call with all the sorted data  if that single call fail
+    # the whole timeline is lost and everything after it (conflict agent, reporter) cant run either.
+    #with call_llm that one important call gets 3 attempts
     return response.content
     # returns a clean readable timeline string that gets passed to the next agent 
 
@@ -75,3 +78,4 @@ if __name__ == "__main__":
 #so this agent takes the list of dict that we got in extractor agent the sort it then convert it 
 #to a string then pass it to the llm and the llm 
 #returns a clean readable timeline string that gets passed to the next agent 
+

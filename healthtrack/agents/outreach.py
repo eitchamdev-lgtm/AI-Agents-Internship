@@ -5,6 +5,7 @@
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from healthtrack.config import GROQ_API_KEY, LLM_MODEL
+from healthtrack.utils import call_llm
 
 llm = ChatGroq(api_key=GROQ_API_KEY, model=LLM_MODEL)
 
@@ -57,7 +58,7 @@ outreach_chain=outreach_prompt|llm
 #outreach agent function 
 def outreach_agent(user_input:str)->str:                    #takes one input user input (and it can be pdf or text description)
     print("Analysing your medical history...")
-    response=outreach_chain.invoke({"user_input":user_input})  #pass it to the chain which fills {user_input} and send it to LLM 
+    response = call_llm(outreach_chain, {"user_input": user_input})  #pass it to the chain which fills {user_input} and send it to LLM 
     return response.content                                     #return the response as a string 
 
 
@@ -68,3 +69,11 @@ if __name__ == "__main__":
     print(result)
 
 #cannot run it directly from python as a script we should run it as a modul because we have the path and tha api and the model in the config file and we imported everything from there 
+
+#changed response = outreach_chain.invoke({"user_input": user_input})
+# to response = call_llm(outreach_chain, {"user_input": user_input}) #where in call_llm def 
+#of the file utils we have chain.invoke in a try except block
+
+#before this change if Groq fail while the outreach agent is running the whole pipeline crashes at agent 0 before even starting the analysis
+#after this change it retries 3 times with exponential backoff nut now 
+#this agent is more robust to network failures

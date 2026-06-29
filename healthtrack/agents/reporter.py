@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
 import json
-
+from healthtrack.utils import call_llm
 llm = ChatGroq(api_key=GROQ_API_KEY, model=LLM_MODEL)
 
 #now for the rest of the code gonna be equal we just changed the imports 
@@ -46,22 +46,41 @@ reporte_prompt=ChatPromptTemplate.from_messages([
 #let's connect the reporter prompt to our model
 reporte_chain=reporte_prompt|llm
 
+def _systolic(bp):
+    # safely extract the first number from a bp string like 145/90 return None if the value is missing junk or 
+    # in unexpected format so the plot dont crashe on bad data 
+    try:
+        return int(str(bp).split("/")[0])
+    except (ValueError, AttributeError, IndexError):
+        return None
+#the old code crashed if the llm returned NA or null insted of a real bp value
+#systolic wraps it safley and returns None if the value is junk so we skip it insted of crashing
+#if all values are bad show a  mesage insted of a broken chart
+
 def plot_health_trends(extracted_data: list):
     # simple line chart showing blood pressure changing over time
     # we loop through extracted data and pull the date and bp value from each visit
     # bp.split("/")[0] takes only  (first number from 145/90 = 145)
-    dates, bp_vals = [], []
-    for r in extracted_data:
+      dates, bp_vals = [], []
+      for r in extracted_data:
         bp = r.get("findings", {}).get("blood_pressure", None)
-        if bp and bp != "NA":
+        systolic = _systolic(bp)  # use safe parser instead of direct int()
+        if systolic is not None:  # skip rows where parsing failed
             dates.append(r.get("date", ""))
-            bp_vals.append(int(bp.split("/")[0]))
+            bp_vals.append(systolic)
 
-    fig, ax = plt.subplots()
-    ax.plot(dates, bp_vals, marker="o", color="#E74C3C", linewidth=2)
-    ax.set_title("blood pressure over time")
-    ax.grid(True, alpha=0.3)
-    return fig
+    # if no valid bp data show a message instead of crashing
+      if not dates:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, "no blood pressure data found",
+                ha="center", va="center", transform=ax.transAxes)
+        return fig
+
+      fig, ax = plt.subplots()
+      ax.plot(dates, bp_vals, marker="o", color="#E74C3C", linewidth=2)
+      ax.set_title("blood pressure over time")
+      ax.grid(True, alpha=0.3)
+      return fig
     # returns the figure so streamlit can display it with st.pyplot(fig)
 
 
@@ -73,11 +92,11 @@ def reporter_agent(timeline: str, conflicts: str, extracted_data: list):
     print("agent 4: writing final health report...")
     extracted_text = json.dumps(extracted_data, indent=2)
 
-    response = reporte_chain.invoke({
-        "timeline": timeline,       # story from agent 2
-        "conflicts": conflicts,     # problems found by agent 3
-        "extracted_data": extracted_text  # raw numbers from agent 1
-    })
+    response = call_llm(reporte_chain,
+                        {"timeline": timeline,
+                         "conflicts": conflicts,
+                         "extracted_data": extracted_text}) #with call llm the final report  gets 3 attempts before failing
+    
 
     fig = plot_health_trends(extracted_data)  # generate the graph
     return response.content, fig

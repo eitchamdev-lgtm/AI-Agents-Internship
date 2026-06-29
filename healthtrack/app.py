@@ -6,6 +6,7 @@ matplotlib.use("Agg")  # fix so matplotlib doesn't open a separate window
 from healthtrack.config import UPLOAD_DIR ## import the upload folder path from config
 
 from healthtrack.orchestrator import run_pipeline # import the pipeline function that runs all agents in order
+from pathlib import Path
 
 # set up the page
 st.set_page_config(page_title="HealthTrack", layout="wide")
@@ -20,10 +21,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # file uploader
 uploaded_files = st.file_uploader("upload your reports",
-    type=["pdf", "txt"],
+    type=None,
     accept_multiple_files=True)
 
-if st.button("🔍 analyze my reports") and uploaded_files:
+if st.button("🔍 analyze my reports") :
+    if not uploaded_files: #more robust app is someone didnt upload any file send a warning
+        st.warning("please upload at least one report first")
+        st.stop()
     # save each uploaded file to the upload folder
     for file in uploaded_files:
         # save each uploaded file to the upload folder
@@ -33,7 +37,12 @@ if st.button("🔍 analyze my reports") and uploaded_files:
             f.write(file.getbuffer())
     
     st.success(f" uploaded {len(uploaded_files)} files")
-    
+    # check folder is not empty before running pipeline
+    # if somehow no files made it to the folder show an error not a crash
+    if not any(Path(str(UPLOAD_DIR)).iterdir()):
+        st.error("please upload at least one medical report first")
+        st.stop()
+
     # run the pipeline
     with st.spinner("agents are analyzing your records..."):
         results = run_pipeline()

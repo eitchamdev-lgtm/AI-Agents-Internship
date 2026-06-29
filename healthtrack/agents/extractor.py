@@ -8,6 +8,7 @@ import os
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from healthtrack.config import GROQ_API_KEY, LLM_MODEL
+from healthtrack.utils import call_llm
 
 llm = ChatGroq(api_key=GROQ_API_KEY, model=LLM_MODEL)
 
@@ -56,7 +57,7 @@ def extractor_agent(raw_texts:dict)->list:
     for filename,text in raw_texts.items():#loop each file(key)and it text content of  the dict raw_texts read by the orchestrator
         print(f"agent is extracting data from {filename}")
 
-        response=extractor_chain.invoke({"report_text":text}) #take the content of each file(take the value of each key)
+        response = call_llm(extractor_chain, {"report_text": text})#take the content of each file(take the value of each key)
                                                               #invoke the chainn that have the prompt 
                                                               #that tel the llm what to to and how we want the output to be 
                                                               #send the prompt and the file text content to the llm to get the json output 
@@ -97,3 +98,9 @@ if __name__ == "__main__":
 # the counter in orchestrator proves files are read exactly once
 # the agent is now pure data transformation not file io
 
+
+#changed : response = extractor_chain.invoke({"report_text": text}) to
+# response = call_llm(extractor_chain, {"report_text": text})
+
+#The extractor agent call the llm once per report so if you have 5 reports it makes 5 LLM calls if any one of those calls fails the whole extraction crashes and lose all the data
+#with call_llm each of those 5 calls gets 3 attempts before giving up  more reliable when processing multiple files.
