@@ -15,6 +15,8 @@ from healthtrack.agents.extractor import extractor_agent
 from healthtrack.agents.timeline import timeline_agent
 from healthtrack.agents.conflict import conflict_agent
 from healthtrack.agents.reporter import reporter_agent
+from healthtrack.agents.investigator import investigator_agent
+from healthtrack.agents.critic import critic_agent
 
 # import the upload folder path from config so we know where to read files from
 from healthtrack.config import UPLOAD_DIR
@@ -57,6 +59,18 @@ def read_file(folder_path:str)->dict:
 #now gonna build the function that run the pipline 
 #that call all agents and passes the datya between them 
 
+def route_after_conflict(conflicts: str) -> str:
+    # this function decides which agent runs next based on what conflict agent found
+    # if conflicts string contains NONE or is empty skip investigator go straight to reporterif real conflicts 
+    # found run investigator first for deeper analysis this is the conditional branch the system makes the decision not us
+    conflicts_clean = conflicts.strip().upper()
+    if "NONE" in conflicts_clean or conflicts_clean == "":
+        print("no conflicts found skipping investigator going straight to reporter")
+        return "reporter"
+    else:
+        print("conflicts found running investigator for deeper analysis")
+        return "investigator"
+
 def run_pipeline():
     print("_"*50)
     print("starting healthtrack pipline")
@@ -91,19 +105,44 @@ def run_pipeline():
     conflicts=conflict_agent(timeline,extracted_data) #used conflict agent funct that we imported from conflict file 
     print("conflict agent done ")
 
+    # conditional branch: investigator only runs if conflicts were found
+    investigation = ""
+    path = route_after_conflict(conflicts)
+    if path == "investigator":
+        print("\ninvestigator agent...")
+        investigation = investigator_agent(conflicts)
+        print("investigation done")
+    else:
+        print("\nskipping investigator no conflicts found")
+
+    # pass investigation to reporter if it exists
+    # if investigation is not empty combine it with conflicts so reporter has the full picture
+    combined_conflicts = conflicts + "\n\n" + investigation if investigation else conflicts
+
     #reporte agent  ,it takes evrything and generate the final report and graph 
     print("reporter agent ....")
-    reporter ,fig= reporter_agent(timeline,conflicts,extracted_data)
+    report, fig = reporter_agent(timeline, combined_conflicts, extracted_data)
     print("report done")
-    
 
-     # return all results in a dictionary so we can use them later
+    # critic loop: critic checks the report if not good reporter rewrites it once
+    # capped at 1 retry so it never loops forever
+    critique = critic_agent(report)
+    if not critique["approved"]:
+        print("reporter agent rewriting based on critic feedback...")
+        # send the original report + critics feedback back to reporter
+        report, fig = reporter_agent(timeline,
+            combined_conflicts + "\n\ncritic feedback:\n" + critique["feedback"],
+            extracted_data)
+        print("rewrite done")
+
+    # return all results in a dictionary so we can use them later
     return {"raw_texts": raw_texts,
         "outreach_result": outreach_result,
         "extracted_data": extracted_data,
         "timeline": timeline,
         "conflicts": conflicts,
-        "report": reporter,
+        "investigation": investigation,
+        "report": report,
         "figure": fig}
 
 # this block runs only when we execute this file directly
