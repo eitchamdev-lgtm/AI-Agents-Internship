@@ -4,4 +4,8 @@ __pycache__/
 *.pyc
 .vscode/
 *.log
+data/chroma/*
+data/uploads/*
+!data/chroma/.gitkeep
+!data/uploads/.gitkeep
 

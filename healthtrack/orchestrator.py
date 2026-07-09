@@ -17,6 +17,7 @@ from healthtrack.agents.conflict import conflict_agent
 from healthtrack.agents.reporter import reporter_agent
 from healthtrack.agents.investigator import investigator_agent
 from healthtrack.agents.critic import critic_agent
+from healthtrack.rag import store_reports, ask_question
 
 # import the upload folder path from config so we know where to read files from
 from healthtrack.config import UPLOAD_DIR
@@ -94,6 +95,16 @@ def run_pipeline():
     print("extractor agent ...")
     extracted_data=extractor_agent(raw_texts)  #exctractor agent function that we have in extractor file
     print(f"extracted {len(extracted_data)} reports")
+    #run exctractor agent
+    print("extractor agent ...")
+    extracted_data = extractor_agent(raw_texts)
+    print(f"extracted {len(extracted_data)} reports")
+
+    # store all reports in chromadb for rag
+    # this allows the user to ask question about  reports in the chat
+    store_reports(raw_texts) #store reports takes the raw texts already in memo and save them in chromdb as vectors
+                            #we do it at this point after the extractions becuse textes are already in memo so no extra file reading needed 
+    print("reports stored in chromadb")       
 
     #timline agent , it takes structured extracted data and build a chronological narrative
     print("timline agent ...")

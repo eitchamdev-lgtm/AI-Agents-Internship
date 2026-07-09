@@ -7,6 +7,7 @@ from healthtrack.config import UPLOAD_DIR ## import the upload folder path from 
 
 from healthtrack.orchestrator import run_pipeline # import the pipeline function that runs all agents in order
 from pathlib import Path
+from healthtrack.rag import ask_question
 
 # set up the page
 st.set_page_config(page_title="HealthTrack", layout="wide")
@@ -71,8 +72,27 @@ if st.session_state.get("done"):
             st.pyplot(results["figure"])
     
     with tab3:
-        st.info("💬 chat feature coming soon")
-        st.write("ask questions about your medical records")
+     st.subheader("💬 ask anything about your medical records")
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # redraw chat history so messages dont disappear on rerun
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.write(msg["content"])
+
+    question = st.chat_input("ask anything about your reports...")
+    if question:
+        st.session_state.messages.append({"role": "user", "content": question})
+        with st.chat_message("user"):
+            st.write(question)
+        with st.chat_message("assistant"):
+            with st.spinner("searching your records..."):
+                answer = ask_question(question)
+            st.write(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.rerun()
 
 #full logic and flow:
 #1_ upload a file by clicking the upload buttonthe file might already be on  disk in a folder like downloads or desktop
