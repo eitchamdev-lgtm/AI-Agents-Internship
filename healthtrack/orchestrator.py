@@ -10,6 +10,8 @@
 
 
 #import all 5 agents so we can call them in order 
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, List
 from healthtrack.agents.outreach import outreach_agent
 from healthtrack.agents.extractor import extractor_agent
 from healthtrack.agents.timeline import timeline_agent
@@ -23,6 +25,19 @@ from healthtrack.rag import store_reports, ask_question
 from healthtrack.config import UPLOAD_DIR
 
 import os
+
+class HealthState(TypedDict):
+    folder_path: str
+    raw_texts: dict
+    outreach_result: str
+    extracted_data: list
+    timeline: str
+    conflicts: str
+    investigation: str
+    report: str
+    figure: object
+    critic_feedback: str
+    retry_count: int
 
 #so here what we gonna do is build a function that read file txt and pdf(using pdf plumber) from a folder 
 #and return a text in a dict form where the key = file name and value = file or pdf content
@@ -58,103 +73,147 @@ def read_file(folder_path:str)->dict:
     return raw_texts # return the dict with all file contents
 
 #now gonna build the function that run the pipline 
-#that call all agents and passes the datya between them 
+#that call all agents and passes the datya between them
 
-def route_after_conflict(conflicts: str) -> str:
+def node_outreach(state: HealthState) -> HealthState:
+    print("\noutreach agent...")
+    raw_texts = read_file(state["folder_path"])
+    store_reports(raw_texts)
+    print("reports stored in chromadb")
+    all_text = "\n".join(raw_texts.values())
+    result = outreach_agent(all_text)
+    print("outreach done")
+    return {**state, "raw_texts": raw_texts, "outreach_result": result}
+
+
+def node_extractor(state: HealthState) -> HealthState:
+    print("\nextractor agent...")
+    data = extractor_agent(state["raw_texts"])
+    print(f"extracted {len(data)} reports")
+    return {**state, "extracted_data": data}
+
+
+def node_timeline(state: HealthState) -> HealthState:
+    print("\ntimeline agent...")
+    timeline = timeline_agent(state["extracted_data"])
+    print("timeline done")
+    return {**state, "timeline": timeline}
+
+
+def node_conflict(state: HealthState) -> HealthState:
+    print("\nconflict agent...")
+    conflicts = conflict_agent(state["timeline"], state["extracted_data"])
+    print("conflict done")
+    return {**state, "conflicts": conflicts}
+
+
+def node_investigator(state: HealthState) -> HealthState:
+    print("\ninvestigator agent...")
+    investigation = investigator_agent(state["conflicts"])
+    print("investigation done")
+    return {**state, "investigation": investigation}
+
+
+def node_reporter(state: HealthState) -> HealthState:
+    print("\nreporter agent...")
+    combined = state["conflicts"]
+    if state.get("investigation"):
+        combined += "\n\n" + state["investigation"]
+    if state.get("critic_feedback"):
+        combined += "\n\ncritic feedback:\n" + state["critic_feedback"]
+    report, fig = reporter_agent(state["timeline"], combined, state["extracted_data"])
+    print("report done")
+    return {**state, "report": report, "figure": fig}
+
+
+def node_critic(state: HealthState) -> HealthState:
+    print("\ncritic agent...")
+    critique = critic_agent(state["report"])
+    if critique["approved"]:
+        print("critic: report approved")
+        return {**state, "critic_feedback": ""}
+    else:
+        print("critic: report needs revision")
+        return {**state, "critic_feedback": critique["feedback"], "retry_count": state.get("retry_count", 0) + 1}
+
+
+
+def route_after_conflict(state: HealthState) -> str:
     # this function decides which agent runs next based on what conflict agent found
     # if conflicts string contains NONE or is empty skip investigator go straight to reporterif real conflicts 
     # found run investigator first for deeper analysis this is the conditional branch the system makes the decision not us
-    conflicts_clean = conflicts.strip().upper()
+    conflicts_clean = state["conflicts"].strip().upper()
     if "NONE" in conflicts_clean or conflicts_clean == "":
-        print("no conflicts found skipping investigator going straight to reporter")
+        print("no conflicts found — going straight to reporter")
         return "reporter"
     else:
-        print("conflicts found running investigator for deeper analysis")
+        print("conflicts found — running investigator first")
         return "investigator"
 
-def run_pipeline():
-    print("_"*50)
-    print("starting healthtrack pipline")
-    print("_"*50)
-    #read all pdfs from the upload folder once 
-    print("\n reading pdfs")
-    raw_texts=read_file(str(UPLOAD_DIR)) #used the function that we did before that take the file 
-                                        #path where all files are read every file 
-                                        #and store it in a dict wehre key =file name 
-                                        #and value =content (raw_text)
-                                        #and return raw_text 
-                                        #so here we saved the content in the raw text variable 
-                                        #to pass it between agents
-    #run outreach agent ,takes all text combined and find missing provider and genreate email draft
-    print("outreach agent ....")
-    all_text="\n".join(raw_texts.values())
-    outreach_result=outreach_agent(all_text) #outreach agent funct in outreach agent file
-    print("outreach done ")
-
-    #run exctractor agent, # it takes the raw text dictionary and extracts structured data
-    print("extractor agent ...")
-    extracted_data=extractor_agent(raw_texts)  #exctractor agent function that we have in extractor file
-    print(f"extracted {len(extracted_data)} reports")
-    #run exctractor agent
-    print("extractor agent ...")
-    extracted_data = extractor_agent(raw_texts)
-    print(f"extracted {len(extracted_data)} reports")
-
-    # store all reports in chromadb for rag
-    # this allows the user to ask question about  reports in the chat
-    store_reports(raw_texts) #store reports takes the raw texts already in memo and save them in chromdb as vectors
-                            #we do it at this point after the extractions becuse textes are already in memo so no extra file reading needed 
-    print("reports stored in chromadb")       
-
-    #timline agent , it takes structured extracted data and build a chronological narrative
-    print("timline agent ...")
-    timeline=timeline_agent(extracted_data) #we used the imported timline agent funct imported from timline file 
-    print("timline done ")
-
-    #conflict agent it takes timline and extracted data to find contradictions 
-    print("conflict agent ")
-    conflicts=conflict_agent(timeline,extracted_data) #used conflict agent funct that we imported from conflict file 
-    print("conflict agent done ")
-
-    # conditional branch: investigator only runs if conflicts were found
-    investigation = ""
-    path = route_after_conflict(conflicts)
-    if path == "investigator":
-        print("\ninvestigator agent...")
-        investigation = investigator_agent(conflicts)
-        print("investigation done")
+def route_after_critic(state: HealthState) -> str:
+    if not state["critic_feedback"]:
+        print("critic approved — pipeline complete")
+        return END
+    elif state.get("retry_count", 0) <= 1:
+        print("critic rejected — rewriting report once")
+        return "reporter"
     else:
-        print("\nskipping investigator no conflicts found")
+        print("retry cap reached — ending pipeline")
+        return END
 
-    # pass investigation to reporter if it exists
-    # if investigation is not empty combine it with conflicts so reporter has the full picture
-    combined_conflicts = conflicts + "\n\n" + investigation if investigation else conflicts
 
-    #reporte agent  ,it takes evrything and generate the final report and graph 
-    print("reporter agent ....")
-    report, fig = reporter_agent(timeline, combined_conflicts, extracted_data)
-    print("report done")
 
-    # critic loop: critic checks the report if not good reporter rewrites it once
-    # capped at 1 retry so it never loops forever
-    critique = critic_agent(report)
-    if not critique["approved"]:
-        print("reporter agent rewriting based on critic feedback...")
-        # send the original report + critics feedback back to reporter
-        report, fig = reporter_agent(timeline,
-            combined_conflicts + "\n\ncritic feedback:\n" + critique["feedback"],
-            extracted_data)
-        print("rewrite done")
+workflow = StateGraph(HealthState)
 
-    # return all results in a dictionary so we can use them later
-    return {"raw_texts": raw_texts,
-        "outreach_result": outreach_result,
-        "extracted_data": extracted_data,
-        "timeline": timeline,
-        "conflicts": conflicts,
-        "investigation": investigation,
-        "report": report,
-        "figure": fig}
+workflow.add_node("outreach", node_outreach)
+workflow.add_node("extractor", node_extractor)
+workflow.add_node("timeline", node_timeline)
+workflow.add_node("conflict", node_conflict)
+workflow.add_node("investigator", node_investigator)
+workflow.add_node("reporter", node_reporter)
+workflow.add_node("critic", node_critic)
+
+workflow.set_entry_point("outreach")
+workflow.add_edge("outreach", "extractor")
+workflow.add_edge("extractor", "timeline")
+workflow.add_edge("timeline", "conflict")
+
+workflow.add_conditional_edges("conflict", route_after_conflict, {
+    "investigator": "investigator",
+    "reporter": "reporter"
+})
+
+workflow.add_edge("investigator", "reporter")
+workflow.add_edge("reporter", "critic")
+
+workflow.add_conditional_edges("critic", route_after_critic, {
+    "reporter": "reporter",
+    END: END
+})
+
+app = workflow.compile()
+
+
+def run_pipeline() -> dict:
+    print("_" * 50)
+    print("starting healthtrack pipeline")
+    print("_" * 50)
+
+    result = app.invoke({
+        "folder_path": str(UPLOAD_DIR),
+        "raw_texts": {},
+        "outreach_result": "",
+        "extracted_data": [],
+        "timeline": "",
+        "conflicts": "",
+        "investigation": "",
+        "report": "",
+        "figure": None,
+        "critic_feedback": "",
+        "retry_count": 0
+    })
+
+    return result
 
 # this block runs only when we execute this file directly
 # it runs the pipeline and prints the final report
@@ -166,11 +225,12 @@ if __name__ == "__main__":
     print(results["report"])
 
 
-
-# the old orchestrator used langgraph with nodes edges and a typeddict it was more complex than what we needed for a linear pipeline
-# the new orchestrator is simplerit just calls each agent in order and passes data directly no graph no nodes 
-
-#the new one is better bcz we havae simpler code is easier to read debug and fixlanggraph is useful for loops and branching but our pipeline is a straight line
-# the old code also read pdfs multiple timesthe new code reads everything once at the start and passes it aroundthis is faster and cleaner
-#and also here no hardcoded path c:\lenovo\....
+#changelog: went back to langgraph after mark review pointed out we removed it in an earlier
+#refactor wile claiming "our pipeline is a straight line", but the same commit added a conditional
+#branch (investigator) and a critic loop wich are literaly exactly wat langgraph is for so that
+#justification didnt realy hold up
+#also fixed a bug were extractor_agent was being called twice by acident wasting an extra llm call
+#and retry_count now actualy lives in state and gets checked by the graph insted of being just
+#a manual if/else that happend to work but had no real loop structure or cap behind it
+#no hardcoded paths here either, everything still comes from config.py
 

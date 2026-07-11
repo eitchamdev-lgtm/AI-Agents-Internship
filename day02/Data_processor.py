@@ -14,7 +14,7 @@ class DataProcessor:
                 self.data=list(reader)
                 logger.info(f"Read {len(self.data)} rows")    
         except FileNotFoundError:
-            logger.error(f"file {filename} not found")
+            logger.error(f"file {self.filename} not found")
     def clean(self):
         cleaned = []
         for row in self.data:

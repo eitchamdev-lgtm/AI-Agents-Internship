@@ -61,8 +61,8 @@ def plot_health_trends(extracted_data: list):
     # simple line chart showing blood pressure changing over time
     # we loop through extracted data and pull the date and bp value from each visit
     # bp.split("/")[0] takes only  (first number from 145/90 = 145)
-      dates, bp_vals = [], []
-      for r in extracted_data:
+    dates, bp_vals = [], []
+    for r in extracted_data:
         bp = r.get("findings", {}).get("blood_pressure", None)
         systolic = _systolic(bp)  # use safe parser instead of direct int()
         if systolic is not None:  # skip rows where parsing failed
@@ -70,18 +70,18 @@ def plot_health_trends(extracted_data: list):
             bp_vals.append(systolic)
 
     # if no valid bp data show a message instead of crashing
-      if not dates:
+    if not dates:
         fig, ax = plt.subplots()
         ax.text(0.5, 0.5, "no blood pressure data found",
                 ha="center", va="center", transform=ax.transAxes)
         return fig
 
-      fig, ax = plt.subplots()
-      ax.plot(dates, bp_vals, marker="o", color="#E74C3C", linewidth=2)
-      ax.set_title("blood pressure over time")
-      ax.grid(True, alpha=0.3)
-      return fig
+    fig, ax = plt.subplots()
+    ax.plot(dates, bp_vals, marker="o", color="#E74C3C", linewidth=2)
+    ax.set_title("blood pressure over time")
+    ax.grid(True, alpha=0.3)
     # returns the figure so streamlit can display it with st.pyplot(fig)
+    return fig
 
 
 

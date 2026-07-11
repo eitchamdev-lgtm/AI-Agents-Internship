@@ -2,7 +2,6 @@
 #so here the import and folder path and loading the api 
 #and using it and specifiyin the model gonna look much cleaner since we have them defined 
 #in config.py 
-import pdfplumber
 import json
 import os
 from langchain_groq import ChatGroq

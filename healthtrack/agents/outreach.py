@@ -7,6 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from healthtrack.config import GROQ_API_KEY, LLM_MODEL
 from healthtrack.utils import call_llm
+from langchain_core.messages import ToolMessage
 
 llm = ChatGroq(api_key=GROQ_API_KEY, model=LLM_MODEL)
 
@@ -84,33 +85,48 @@ outreach_chain = outreach_prompt | llm_with_tools  #the chain needs to use llm_w
 #outreach agent function 
 def outreach_agent(user_input: str) -> str:
     print("agent 0: analyzing medical history and looking up provider contacts...")
-    
-    # send the user input to the llm and get a response
-    # the llm will read the text and decide if it needs to call the tool
-    response = call_llm(outreach_chain, {"user_input": user_input})
 
-    # check if the llm decided to call the lookup_provider_contact tool
-    # hasattr checks if the response object has a tool_calls attribute
-    # response.tool_calls is a list of tool calls the llm wants to make
+    #before we just did outreach_chain.invoke with a dict {"user_input":...} but that dosent let us
+    #append messages later, so instead we build the actual message list from the prompt first
+    #to_messages() turns the prompt template into a real list of message objects we can add to
+    messages = outreach_prompt.invoke({"user_input": user_input}).to_messages()
+
+    #send the message list (not the chain) to call_llm becuse we need llm_with_tools directly
+    #this way response comes back as an actual AIMessage object with tool_calls attached to it
+    response = call_llm(llm_with_tools, messages)
+
+    #check if the llm decided to call the lookup_provider_contact tool
+    #hasattr checks if the response object has a tool_calls atribute
+    #response.tool_calls is a list of tool calls the llm wants to make
     if hasattr(response, 'tool_calls') and response.tool_calls:
         print(f"tool called: {len(response.tool_calls)} provider lookups made")
-        tool_results = []  # empty list to store the results of each tool call
-        
-        for tc in response.tool_calls:  # loop through each tool call the llm made
-            # actually run the tool with the provider name the llm passed
+
+        #this is the part we had wrong before: we used to just paste the tool result as text
+        #into the next human message, but the llm cant actually tell that came from a tool call
+        #it just sees it as more user text, so the protocol was technically broken even tho it worked
+        #the correct way is to append the ai's own message (the one with tool_calls in it) first
+        #so the conversation history actually shows "i decided to call this tool"
+        messages.append(response)
+
+        for tc in response.tool_calls:  #loop through each tool call the llm made
+            #actually run the tool with the provider name the llm passed
             result = lookup_provider_contact.invoke(tc["args"])
-            tool_results.append(result)  # save the result
             print(f"looked up: {tc['args']['provider_name']}")
 
-        # send the tool results back to the llm so it can use them in the final response
-        # we combine the original user input with the tool results and send again
-        final_response = call_llm(outreach_chain, {"user_input": user_input + "\n\ntool results:\n" + "\n".join(tool_results)})
+            #now instead of pasting this into text we wrap it in a ToolMessage
+            #tool_call_id is what links this specific result back to the specific call the llm made
+            #this matters more when there is more than one tool call at once, so the llm knows
+            #wich result belongs to wich provider it asked about
+            messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
 
-        return final_response.content  # return the final response that includes the tool results
+        #call the llm again but now with the full history: original question + ai tool call + tool results
+        #this is the real tool-role protocol, the same one we used on day 11 before we accidently
+        #simplified it into string concatenation during the refactor
+        final_response = call_llm(llm_with_tools, messages)
+        return final_response.content  #return the final response that includes the tool results
 
-    # if the llm didnt call any tool just return the response directly
-    return response.content               #takes one input user input (and it can be pdf or text description)
-
+    #if the llm didnt call any tool just return the response directly
+    return response.content
 
 # Test                                (it only run for this file but this block will not run if imported)
 if __name__ == "__main__":
@@ -118,20 +134,23 @@ if __name__ == "__main__":
     result = outreach_agent("Patient has diabetes and high blood pressure visited Chicago Clinic in 2022.")
     print(result)
 
-#cannot run it directly from python as a script we should run it as a modul because we have the path 
-# and tha api and the model in the config file and we imported everything from there 
+#changelog for this file:
 
-#changed response = outreach_chain.invoke({"user_input": user_input})
-# to response = call_llm(outreach_chain, {"user_input": user_input}) #where in call_llm def 
-#of the file utils we have chain.invoke in a try except block
+#1_ changed outreach_chain.invoke({"user_input": user_input}) to call_llm(outreach_chain, {"user_input": user_input})
+#   before this if groq fail while outreach agent is running the whole pipeline crashes at agent 0
+#   before even starting the analysis, after this change it retries 3 times with exponential backoff
+#   so now this agent is more robust to network failures
 
-#before this change if Groq fail while the outreach agent is running the whole pipeline crashes at agent 0 before even starting the analysis
-#after this change it retries 3 times with exponential backoff nut now 
-#this agent is more robust to network failures
+#2_ added @tool and lookup_provider_contact so llm can actually call a real function to find provider emails
+#   added llm_with_tools so llm knows the tool exists and can use it
+#   changed chain to use llm_with_tools insted of just llm otherwise the tool is registerd but never
+#   actually available when the chain runs
+#   added tool instruction to system prompt so llm knows wen to use it
+#   upgraded outreach_agent to check for tool calls run them and send results back to llm
 
-#updates that we did :
-# added @tool and lookup_provider_contact so llm can actually call a real function to find provider emails
-# added llm_with_tools so llm knows the tool exists and can use it
-# changed chain to use llm_with_tools insted of llm so tool is available when chain runs
-# added tool instruction to system prompt so llm knows when to use it
-# upgraded outreach_agent to check for tool calls run them and send results back to llm
+#3_ fixed the tool-role protocol: removed the part where we pasted tool results as plain text into
+#   user_input, that was never the real protocol it just happend to work becuse groq is lenient about
+#   message structure. now we build a proper message list and append the ai's own message + a
+#   ToolMessage per tool call, this is more correct becuse the llm can actually see wich message
+#   came from wich role insted of guessing based on text content, and it matches wat we did
+#   originaly on day 11 before this got lost somwhere during the wp5/wp6 refactor
