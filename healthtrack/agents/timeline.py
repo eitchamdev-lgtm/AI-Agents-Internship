@@ -16,6 +16,11 @@ from healthtrack.utils import call_llm
 # path and tha api and the model in the config file and we imported everything from there
 
 
+#we need to pull out the sorting data into its own funct so we can test it without touching groq 
+def sort_by_date(extracted_data:list)->list: #pure py funct no llm needed , take a list of dict from extractor agent 
+                                             #and sort them by date(oldest firsst) , we can test this in pytest without needing an API 
+    return sorted(extracted_data,key=lambda x:x.get("date","")) # lambda x: x.get("date", "") means for each dict in the list get the date value from oldest first newest last
+
 
 
 # agent 2: timeline builder
@@ -23,12 +28,9 @@ from healthtrack.utils import call_llm
 # step 1: sort the reports by date in python not LLM because python sorting is 100% reliable
 # step 2: pass sorted data to LLM to write a clear human readable narrative
 
-def timeline_agent(extracted_data: list) -> str: #extracted_data is the list from agent extractor (one dictionary per medical report)
-    # sort by date oldest to newest
-    # lambda x: x.get("date", "") means for each dict in the list get the date value from oldest first newest last
-    sorted_data = sorted(extracted_data, key=lambda x: x.get("date", ""))
+def timeline_agent(extracted_data: list) -> str: 
+    sorted_data =sort_by_date(extracted_data)
     print("agent : building health timeline...")
-
     # convert sorted list to a string so we can pass it to the llm
     sorted_text = json.dumps(sorted_data, indent=2) #json.dumps turn the dorted list to a string (with good space)
 

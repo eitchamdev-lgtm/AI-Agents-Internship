@@ -33,7 +33,6 @@ class weatherFetcher:
             longitude=first_result["longitude"]
             print(f"if found the coordinations for  {self.city}:latitude={latitude},longitude={longitude}")
             meteo_situation=input(f"now that I found the city cordination print 'Yes' if you want the meteo situation in {self.city} ")
-            meteo_situation=input(f"now that I found the city cordination print 'Yes' if you want the meteo situation in {sel.city} ")
 
             if meteo_situation.lower()=="yes":
                 weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,weather_code&timezone=auto"

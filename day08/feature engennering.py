@@ -39,7 +39,7 @@ print("after scaling mean:",x_scaled[:, 0].mean().round(5)) #x_scaled is no long
 
 
 #_______________________________________________________
-#Penalized regression these models are used when we have
+#Penalized regression these models are used when we have 
 # high correlation(coef instabel) or when we have p>n
 #numeber of variable>number and whe i have that i will get high variability(it can do ok on training set ) so when i go
 #try my model on the test set i will gwt an overfitting problem so i should penalize the variable
