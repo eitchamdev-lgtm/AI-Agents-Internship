@@ -12,15 +12,33 @@ upload your medical pdfs or txt reports and the system will:
 - self correct the report using a critic agent if the first draft isnt good enough
 
 ## architecture
-outreach → extractor → timeline → conflict → investigator (only if conflicts) → reporter → critic → rewrite if needed
-- agent 0 outreach: finds missing providers and writes email drafts using a real tool lookup
-- agent 1 extractor: pulls structured medical facts from each report
-- agent 2 timeline: sorts everything by date into a health story
-- agent 3 conflict: finds contradictions like bp changing without medication
-- investigator: only runs if conflicts found digs deeper and assigns urgency levels
-- agent 4 reporter: writes the summary and creates a blood presure graph
-- critic: reviews the report and sends it back for rewriting if its not good enough
-- all agents share data through the orchestrator pdfs are read once and passed through memory
+User uploads PDFs → Streamlit saves files to data/uploads/
+
+LangGraph starts → Initializes shared state that tracks everything throughout the pipeline
+
+Outreach Agent → Reads all files once (with counter to prove no duplicates), stores chunks in ChromaDB for RAG, identifies providers and missing specialists, calls lookup_provider_contact tool to find emails, generates email drafts
+
+Extractor Agent → Takes raw text from state (never reads disk again), sends each file to LLM, returns structured data (clinic, date, BP, glucose, etc.)
+
+Timeline Agent → Sorts by date using pure Python (reliable), sends sorted data to LLM, builds chronological health narrative
+
+Conflict Agent → Compares timeline and extracted data, finds contradictions (BP changing without medication) and gaps (missing eye exams)
+
+Conditional Branch → If conflicts found, routes to Investigator; if none, skips to Reporter
+
+Investigator Agent (conditional) → Analyzes conflicts deeper, assigns urgency levels, gives specific questions for the doctor
+
+Reporter Agent → Combines all data, writes patient-friendly summary, generates blood pressure graph
+
+Critic Agent → Reviews the report, if not good enough sends it back to Reporter for one rewrite (self-correction loop)
+
+Streamlit displays → Tab 1: email drafts, conflicts, health summary, download button; Tab 2: timeline, blood pressure graph; Tab 3: chat interface with RAG + memory
+
+
+## data flow
+PDFs → Outreach → Extractor → Timeline → Conflict → (Conflicts? → Investigator) → Reporter → Critic → Report
+                      ↑                                                                         ↑
+                      └───────────── rewrites if needed ──────────────────────────────────────┘
 
 ## setup
 1. clone the repo
