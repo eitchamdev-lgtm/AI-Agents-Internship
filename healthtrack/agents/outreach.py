@@ -87,8 +87,13 @@ def outreach_agent(user_input: str) -> str:
     print("agent 0: analyzing medical history and looking up provider contacts...")
 
     #before we just did outreach_chain.invoke with a dict {"user_input":...} but that dosent let us
-    #append messages later, so instead we build the actual message list from the prompt first
-    #to_messages() turns the prompt template into a real list of message objects we can add to
+    #append messages later, so instead we filled the prompt with the user_input 
+    # build the actual message list from the prompt first using 
+    #to_messages() that turns the prompt template into a real list of message objects(2 objects 
+    # systemmessage and user message) 
+    
+    #why we turn the prompt into a list ?  we need to add more messages to it later (the tool call, then the tool result) 
+    #  a finished prompt can't be added to, but a list can.
     messages = outreach_prompt.invoke({"user_input": user_input}).to_messages()
 
     #send the message list (not the chain) to call_llm becuse we need llm_with_tools directly

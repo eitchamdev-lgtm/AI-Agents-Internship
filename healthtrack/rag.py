@@ -79,7 +79,12 @@ def store_reports(raw_texts:dict):
 
 #now ask question funct. answer a question using rag converts the question to a vector
 #find the most similar chunks in chromadb send the chunks + question to the llm with memory returns the answer 
-def ask_question(question:str)->str:
+
+#now takes session_id too not only the question 
+#so each user gets their own chat memory instead of sharing one
+#default value keeps the old test block at the bottom working without changes
+def ask_question(question:str, session_id:str="health_chat")->str: 
+
     question_embedding = embedding_model.embed_query(question)# convert question to vector
     results = collection.query(query_embeddings=[question_embedding], n_results=3)# find 3 most relevant chunks from all reports
     context = "\n".join(results["documents"][0])# combine the chunks into one context string
@@ -98,8 +103,15 @@ def ask_question(question:str)->str:
         history_messages_key="chat_history")
 
     # invoke(the chain that have the prompt that hase in it chat history context and input) the conversation with the question and context
+    
+
+    # before: session_id was always the fixed string "health_chat", so every user
+# looked up the SAME memory bucket in store[]  everyone chat got mixed together
+# now: session_id comes from the function's parameter (see def ask_question above),
+# which app.py fills in with each user's own unique id  so each user gets
+# their own separate memory bucket instead of sharing one with everyone else
     response = conversation.invoke({"input": question, "context": context},
-        config={"configurable": {"session_id": "health_chat"}})
+    config={"configurable": {"session_id": session_id}})
     return response.content
 
 # test block runs only when executing this file directly

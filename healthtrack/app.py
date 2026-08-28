@@ -9,6 +9,15 @@ from healthtrack.orchestrator import run_pipeline # import the pipeline function
 from pathlib import Path
 from healthtrack.rag import ask_question
 
+import uuid   #before this every person that chats with the app got treated as the same user 
+#with this modification it gives each browser session its own unique random ID using uuid.uuid4 
+#we store it in st.session_state (not a plain variable) because streamlit reruns 
+#the whole script on every click  session_state survives reruns so the id stays 
+#the same for that person instead of changing every time
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+
+
 # set up the page
 st.set_page_config(page_title="HealthTrack", layout="wide")
 st.title("🏥 HealthTrack — Medical Report Analyzer")
@@ -20,15 +29,30 @@ all files are read once and processed by five specialized agents""")
 # this uses the path from config which is already built with pathlib 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
+#now we build a function that clear upload folder before evry new analysis run 
+#without this old files from previuse upload remains in UPLOAD_DIR alongside the new 
+#uploads so the pipline gonna read the old and new uploads without this 
+def clear_upload_folder():
+    for f in UPLOAD_DIR.iterdir():
+        if f.is_file():
+            f.unlink()
+
 # file uploader
 uploaded_files = st.file_uploader("upload your reports",
     type=None,
     accept_multiple_files=True)
 
+
 if st.button("🔍 analyze my reports") :
     if not uploaded_files: #more robust app is someone didnt upload any file send a warning
         st.warning("please upload at least one report first")
         st.stop()
+
+    clear_upload_folder() #clear out old files before saving the new batch
+    #we clear old file just in case the user gonna upload new file in case the user didnt uploded new files this function wont be called 
+    #so for that we werot it after stop and before the user uploads a document 
+    
     # save each uploaded file to the upload folder
     for file in uploaded_files:
         # save each uploaded file to the upload folder
@@ -89,7 +113,8 @@ if st.session_state.get("done"):
             st.write(question)
         with st.chat_message("assistant"):
             with st.spinner("searching your records..."):
-                answer = ask_question(question)
+                answer = ask_question(question, st.session_state.session_id) # this is what actually connects the unique id to the memory lookup in rag.py
+                                                                             # without this ask_question would have no way to know which user is asking 
             st.write(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
         st.rerun()

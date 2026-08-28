@@ -2,7 +2,7 @@ from pathlib import Path
 import os 
 from dotenv import load_dotenv 
 
-load_dotenv()
+load_dotenv() 
 
 #here in this file we gonna put all important informations about where files are 
 #in this file 
@@ -13,7 +13,7 @@ load_dotenv()
 
 
 # Path(__file__) = this file (config.py)
-# .resolve() = get the full path
+# .resolve() = get the full pathw
 # .parent = go up to healthtrack/
 # .parent again = go up to AI-Agents-Internship/ (project root)
 BASE_DIR=Path(__file__).resolve().parent.parent
@@ -40,7 +40,7 @@ for d in (UPLOAD_DIR,CHROMA_DIR,SAMPLE_DIR):
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("No API key found , create a new.env file , for instructions check .env.example")
-LLM_MODEL    = "llama-3.3-70b-versatile"
+LLM_MODEL    = "openai/gpt-oss-120b"
 EMBED_MODEL  = "all-MiniLM-L6-v2"
 #the reason defining all these model onve here i this file is because if i want to change them i can 
 #change it once from these file instead of changing it in every file that i used this models for 

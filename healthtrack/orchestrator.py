@@ -119,11 +119,13 @@ def node_reporter(state: HealthState) -> HealthState:
     combined = state["conflicts"]
     if state.get("investigation"):
         combined += "\n\n" + state["investigation"]
+
+    # explicit revision instruction (not just passive feedback) so the reporter
+    # treats this as a required correction on retry, not optional context
     if state.get("critic_feedback"):
-        combined += "\n\ncritic feedback:\n" + state["critic_feedback"]
+        combined += f"\n\nYour previous report was rejected. You MUST address this feedback:\n{state['critic_feedback']}"
+
     report, fig = reporter_agent(state["timeline"], combined, state["extracted_data"])
-    print("report done")
-    return {**state, "report": report, "figure": fig}
 
 
 def node_critic(state: HealthState) -> HealthState:
